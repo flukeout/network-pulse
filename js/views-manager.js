@@ -1,6 +1,5 @@
 var ViewsManager = {
   VIEWS_NAMES: {
-    single: "single-project-view",
     featured: "featured-view",
     latest: "latest-view",
     favs: "favs-view",
@@ -38,19 +37,15 @@ var ViewsManager = {
   },
   updateCurrentViewMeta: function(meta) {
     this._currentViewMeta.viewName = meta.viewName;
-    this._currentViewMeta.projectId = meta.projectId || "";
     this._currentViewMeta.issue = meta.issue || "";
   },
-  returnFromSearch: function() {
+  returnToPrevious: function() {
     var viewsNames = this.VIEWS_NAMES;
     switch(this._currentViewMeta.viewName) {
-      case viewsNames.single:
-        this.showSingleProjectView(this._currentViewMeta.projectId);
-        break;
       case viewsNames.featured:
         this.showFeaturedView();
         break;
-      case viewsNames.lastest:
+      case viewsNames.latest:
         this.showLatestView();
         break;
       case viewsNames.favs:
@@ -60,7 +55,17 @@ var ViewsManager = {
         this.showIssuesView(this._currentViewMeta.issue);
         break;
       default:
-        this.showLatestView();
+        this.showFeaturedView();
+    }
+  },
+  returnFromSearch: function() {
+    this.returnToPrevious();
+  },
+  returnFromSingleView: function() {
+    if ( !Search.activated ) {
+      this.returnToPrevious();
+    } else {
+      Search.activate(Search.currentSearchTerm,true);
     }
   },
   renderProjectsIntoView: function(projects) {
@@ -86,14 +91,16 @@ var ViewsManager = {
     this.resetView();
     var $matchedProject = $("#"+projectId);
     if ( $matchedProject.length > 0 ) {
-      $matchedProject.addClass("single").show();
+      $("body").addClass("single-project-view");
+      $matchedProject.show();
     } else {
       this.MessageView.show("Something's wrong", "Check your URL or try a new search. Still no luck? <a href='https://github.com/mozilla/network-pulse/issues/new'>Let us know</a>.");
     }
-    this.updateCurrentViewMeta({
-      viewName: ViewsManager.VIEWS_NAMES.single,
-      projectId: projectId
-    });
+
+    // came to this view from search result
+    if (Search.activated) {
+      $("nav").show();
+    }
   },
   showFeaturedView: function() {
     this.resetView();
@@ -105,11 +112,12 @@ var ViewsManager = {
     this.updateCurrentViewMeta({
       viewName: ViewsManager.VIEWS_NAMES.featured
     });
-    window.history.pushState("Network Pulse", "", window.location.href.split("?")[0]);
+    utility.updateUrlWithoutReload();
   },
   showLatestView: function(onSearchMode) {
+    var showAllProjects = onSearchMode ? false : true;
     this.resetView({
-      showAllProjects: true
+      showAllProjects: showAllProjects
     });
     $("#latest-view-link").addClass("active");
     if (!onSearchMode) {
@@ -117,7 +125,7 @@ var ViewsManager = {
         viewName: ViewsManager.VIEWS_NAMES.latest
       });
     }
-    window.history.pushState("Network Pulse", "", window.location.href.split("?")[0]);
+    utility.updateUrlWithoutReload();
   },
   showFavsView: function() {
     this.resetView({
@@ -144,7 +152,7 @@ var ViewsManager = {
     this.updateCurrentViewMeta({
       viewName: ViewsManager.VIEWS_NAMES.favs
     });
-    window.history.pushState("Network Pulse", "", window.location.href.split("?")[0]);
+    utility.updateUrlWithoutReload();
   },
   showIssuesView: function(selectedIssue) {
     this.resetView({
@@ -165,7 +173,7 @@ var ViewsManager = {
       issue: selectedIssue
     });
     $("#issues-view-link").addClass("active");
-    window.history.pushState("Network Pulse", "", window.location.href.split("?")[0]);
+    utility.updateUrlWithoutReload();
   },
   resetView: function(resetOptions) {
     var options = {
@@ -176,6 +184,7 @@ var ViewsManager = {
     this.$controlsContainer.hide();
     this.$issueBtns.removeClass("active");
     $(".nav-item").removeClass("active");
+    $("body").removeClass("single-project-view");
     if (options.clearAllProjectsFromDom === true) {
       this.$projectsContainer.children().remove();
     } else {
@@ -186,14 +195,24 @@ var ViewsManager = {
     if ( options.showAllProjects === true ) {
       this.$projectsContainer.children(".project").show();
     }
+
+    window.scrollTo(0,0);
   },
   init: function(allProjects) {
     this._projects = allProjects;
     this.$issueBtns.on("click",this.issueBtnClickHandler);
 
-    var projectId = utility.getProjectIdFromUrl();
+    var projectId = utility.getQueryValueFromUrl("id");
+    var searchTerm = utility.getQueryValueFromUrl("keyword");
+
     if ( projectId ) {
       this.showSingleProjectView(projectId);
+    } else if ( searchTerm ) {
+      Search.activate(searchTerm);
+      // escaping from search mode will bring users to Featured Tab
+      this.updateCurrentViewMeta({
+        viewName: ViewsManager.VIEWS_NAMES.featured
+      });
     } else {
       // Featured view the default view
       this.showFeaturedView();
