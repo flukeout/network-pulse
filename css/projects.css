@@ -545,3 +545,41 @@ footer {
     color: #ADADAD;
   }
 }
+
+/* project list item */
+
+#fav-count {
+  margin-bottom: 10px;
+}
+
+#fav-count img {
+  position: relative;
+  top: -2px;
+  margin-right: .5rem;
+}
+
+.project-list-item {
+  width: 100%;
+  margin-left: 10px;
+  margin-right: 10px;
+  padding: 1em;
+  margin-bottom: 1rem;
+  background: white;
+}
+
+.project-list-item h2 {
+  color: #E14164;
+  font-size: 20px;
+  font-weight: 500;
+  margin: 0;
+}
+
+.project-list-item a {
+  color: #E14164;
+}
+
+.project-list-item p {
+  color: #888888;
+  margin: 0;
+  font-size: 0.8rem;
+}
